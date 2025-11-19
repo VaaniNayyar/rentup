@@ -8,10 +8,35 @@ export default function LoginPage() {
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
 
-  const handleSubmit = (e) => {
-    e.preventDefault()
-    console.log('Login attempt:', { email, password })
+ const handleSubmit = async (e) => {
+  e.preventDefault();
+
+  try {
+    const res = await fetch("https://rentup-backend-clean.onrender.com/auth/login", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json"
+      },
+      body: JSON.stringify({ email, password })
+    });
+
+    const data = await res.json();
+
+    if (res.ok) {
+      alert("Login successful!");
+      console.log("User logged in:", data);
+
+      // Optional: Navigate to homepage or explore page
+      window.location.href = "/explore";
+    } else {
+      alert(data.error || "Login failed");
+    }
+
+  } catch (error) {
+    console.error("Login error:", error);
+    alert("Something went wrong. Try again.");
   }
+};
 
   return (
     <div className="min-h-screen flex items-center justify-center px-4 py-12 bg-gradient-to-br from-primary/5 to-secondary/5">
