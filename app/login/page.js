@@ -1,5 +1,7 @@
 'use client'
 
+const API_BASE = "https://rentup-backend-clean.onrender.com";
+
 import { useState } from 'react'
 import Link from 'next/link'
 import Button from '@/components/Button'
