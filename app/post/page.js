@@ -1,11 +1,14 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import Button from '@/components/Button'
 
+const API_BASE = process.env.NEXT_PUBLIC_API_BASE
+
 export default function PostPage() {
   const router = useRouter()
+
   const [formData, setFormData] = useState({
     title: '',
     category: '',
@@ -14,6 +17,7 @@ export default function PostPage() {
     location: '',
     description: '',
   })
+
   const [images, setImages] = useState([])
   const [imagePreviews, setImagePreviews] = useState([])
 
@@ -28,6 +32,14 @@ export default function PostPage() {
 
   const listingTypes = ['Daily Rental', 'Monthly Rental', 'One-time Event']
 
+  useEffect(() => {
+    const token = localStorage.getItem("rentup_token")
+    if (!token) {
+      alert("Please login first!")
+      router.push("/login")
+    }
+  }, [])
+
   const handleInputChange = (e) => {
     const { name, value } = e.target
     setFormData((prev) => ({
@@ -39,13 +51,12 @@ export default function PostPage() {
   const handleImageChange = (e) => {
     const files = Array.from(e.target.files)
     if (files.length + images.length > 5) {
-      alert('You can only upload up to 5 images')
+      alert("You can only upload up to 5 images")
       return
     }
 
     setImages((prev) => [...prev, ...files])
 
-    // Create preview URLs
     const newPreviews = files.map((file) => URL.createObjectURL(file))
     setImagePreviews((prev) => [...prev, ...newPreviews])
   }
@@ -55,251 +66,154 @@ export default function PostPage() {
     setImagePreviews((prev) => prev.filter((_, i) => i !== index))
   }
 
-  const handleSubmit = (e) => {
+  // ------------- SUBMIT FORM -------------
+  const handleSubmit = async (e) => {
     e.preventDefault()
-    console.log('Form submitted:', formData, images)
-    // Handle form submission logic here
-    alert('Listing posted successfully!')
-    router.push('/explore')
-  }
 
-  const handleCancel = () => {
-    if (confirm('Are you sure you want to cancel? All data will be lost.')) {
-      router.push('/explore')
+    try {
+      // 1) UPLOAD IMAGES
+      const uploadForm = new FormData()
+      images.forEach((img) => uploadForm.append("images", img))
+
+      const uploadRes = await fetch(`${API_BASE}/post/upload-images`, {
+        method: "POST",
+        body: uploadForm,
+      })
+
+      const uploadData = await uploadRes.json()
+
+      if (!uploadRes.ok || !uploadData.urls) {
+        alert("Failed to upload images")
+        return
+      }
+
+      // 2) CREATE LISTING
+      const listingRes = await fetch(`${API_BASE}/post/create`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          ...formData,
+          images: uploadData.urls,
+        }),
+      })
+
+      const listingData = await listingRes.json()
+
+      if (listingRes.ok) {
+        alert("Listing posted successfully!")
+        router.push("/explore")
+      } else {
+        alert("Failed to post listing: " + listingData.error)
+      }
+    } catch (err) {
+      console.error(err)
+      alert("Something went wrong!")
     }
   }
 
   return (
     <div className="min-h-screen bg-gray-50 py-8 px-4">
       <div className="container mx-auto max-w-4xl">
-        {/* Header */}
-        <div className="mb-8">
-          <h1 className="text-4xl font-bold text-gray-900 mb-2">
-            Post a New Listing
-          </h1>
-          <p className="text-gray-600">
-            Share your items with the community and earn passive income
-          </p>
-        </div>
+        {/* HEADER */}
+        <h1 className="text-4xl font-bold mb-4">Post a New Listing</h1>
 
-        {/* Form */}
-        <form onSubmit={handleSubmit} className="bg-white rounded-xl shadow-md p-6 md:p-8">
+        {/* FORM */}
+        <form onSubmit={handleSubmit} className="bg-white p-6 rounded-xl shadow">
+
           {/* Title */}
-          <div className="mb-6">
-            <label
-              htmlFor="title"
-              className="block text-sm font-semibold text-gray-700 mb-2"
-            >
-              Title
-            </label>
-            <input
-              type="text"
-              id="title"
-              name="title"
-              value={formData.title}
-              onChange={handleInputChange}
-              placeholder="e.g., Canon EOS R5 Camera"
-              className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent outline-none transition"
-              required
-            />
-          </div>
+          <input
+            type="text"
+            name="title"
+            placeholder="Title"
+            onChange={handleInputChange}
+            required
+            className="w-full p-3 border rounded mb-4"
+          />
 
-          {/* Category and Listing Type */}
-          <div className="grid md:grid-cols-2 gap-6 mb-6">
-            <div>
-              <label
-                htmlFor="category"
-                className="block text-sm font-semibold text-gray-700 mb-2"
-              >
-                Category
-              </label>
-              <select
-                id="category"
-                name="category"
-                value={formData.category}
-                onChange={handleInputChange}
-                className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent outline-none transition appearance-none bg-white"
-                required
-              >
-                <option value="">Select a category</option>
-                {categories.map((cat) => (
-                  <option key={cat} value={cat}>
-                    {cat}
-                  </option>
-                ))}
-              </select>
-            </div>
+          {/* Category */}
+          <select
+            name="category"
+            onChange={handleInputChange}
+            required
+            className="w-full p-3 border rounded mb-4"
+          >
+            <option value="">Select Category</option>
+            {categories.map((cat) => (
+              <option key={cat} value={cat}>{cat}</option>
+            ))}
+          </select>
 
-            <div>
-              <label
-                htmlFor="listingType"
-                className="block text-sm font-semibold text-gray-700 mb-2"
-              >
-                Listing Type
-              </label>
-              <select
-                id="listingType"
-                name="listingType"
-                value={formData.listingType}
-                onChange={handleInputChange}
-                className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent outline-none transition appearance-none bg-white"
-                required
-              >
-                <option value="">Select listing type</option>
-                {listingTypes.map((type) => (
-                  <option key={type} value={type}>
-                    {type}
-                  </option>
-                ))}
-              </select>
-            </div>
-          </div>
+          {/* Listing Type */}
+          <select
+            name="listingType"
+            onChange={handleInputChange}
+            required
+            className="w-full p-3 border rounded mb-4"
+          >
+            <option value="">Select Listing Type</option>
+            {listingTypes.map((type) => (
+              <option key={type} value={type}>{type}</option>
+            ))}
+          </select>
 
-          {/* Price and Location */}
-          <div className="grid md:grid-cols-2 gap-6 mb-6">
-            <div>
-              <label
-                htmlFor="price"
-                className="block text-sm font-semibold text-gray-700 mb-2"
-              >
-                Price (per day/month)
-              </label>
-              <input
-                type="text"
-                id="price"
-                name="price"
-                value={formData.price}
-                onChange={handleInputChange}
-                placeholder="e.g., ₹2,500/day"
-                className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent outline-none transition"
-                required
-              />
-            </div>
+          {/* Price */}
+          <input
+            type="text"
+            name="price"
+            placeholder="Price"
+            onChange={handleInputChange}
+            required
+            className="w-full p-3 border rounded mb-4"
+          />
 
-            <div>
-              <label
-                htmlFor="location"
-                className="block text-sm font-semibold text-gray-700 mb-2"
-              >
-                Location
-              </label>
-              <input
-                type="text"
-                id="location"
-                name="location"
-                value={formData.location}
-                onChange={handleInputChange}
-                placeholder="e.g., Mumbai, Maharashtra"
-                className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent outline-none transition"
-                required
-              />
-            </div>
-          </div>
+          {/* Location */}
+          <input
+            type="text"
+            name="location"
+            placeholder="Location"
+            onChange={handleInputChange}
+            required
+            className="w-full p-3 border rounded mb-4"
+          />
 
           {/* Description */}
-          <div className="mb-6">
-            <label
-              htmlFor="description"
-              className="block text-sm font-semibold text-gray-700 mb-2"
-            >
-              Description
-            </label>
-            <textarea
-              id="description"
-              name="description"
-              value={formData.description}
-              onChange={handleInputChange}
-              placeholder="Describe your item in detail..."
-              rows="6"
-              className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent outline-none transition resize-none"
-              required
-            ></textarea>
-          </div>
+          <textarea
+            name="description"
+            placeholder="Description"
+            rows="5"
+            onChange={handleInputChange}
+            required
+            className="w-full p-3 border rounded mb-4"
+          ></textarea>
 
-          {/* Images */}
-          <div className="mb-8">
-            <label className="block text-sm font-semibold text-gray-700 mb-2">
-              Images
-            </label>
+          {/* IMAGES */}
+          <input
+            type="file"
+            multiple
+            accept="image/*"
+            onChange={handleImageChange}
+            className="mb-4"
+          />
 
-            {/* Upload Area */}
-            <div className="border-2 border-dashed border-gray-300 rounded-lg p-8 text-center bg-primary/5 hover:bg-primary/10 transition cursor-pointer">
-              <input
-                type="file"
-                id="images"
-                accept="image/png, image/jpeg, image/jpg"
-                multiple
-                onChange={handleImageChange}
-                className="hidden"
-              />
-              <label htmlFor="images" className="cursor-pointer">
-                <div className="flex flex-col items-center">
-                  <svg
-                    className="w-12 h-12 text-gray-400 mb-3"
-                    fill="none"
-                    stroke="currentColor"
-                    viewBox="0 0 24 24"
-                  >
-                    <path
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      strokeWidth={2}
-                      d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"
-                    />
-                  </svg>
-                  <p className="text-gray-700 font-medium mb-1">
-                    Click to upload images
-                  </p>
-                  <p className="text-sm text-gray-500">
-                    PNG, JPG up to 10MB (Max 5 images)
-                  </p>
-                </div>
-              </label>
-            </div>
-
-            {/* Image Previews */}
-            {imagePreviews.length > 0 && (
-              <div className="grid grid-cols-2 md:grid-cols-5 gap-4 mt-4">
-                {imagePreviews.map((preview, index) => (
-                  <div key={index} className="relative group">
-                    <img
-                      src={preview}
-                      alt={`Preview ${index + 1}`}
-                      className="w-full h-32 object-cover rounded-lg"
-                    />
-                    <button
-                      type="button"
-                      onClick={() => removeImage(index)}
-                      className="absolute top-2 right-2 bg-red-500 text-white w-6 h-6 rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition"
-                    >
-                      ×
-                    </button>
-                  </div>
-                ))}
+          {/* PREVIEW */}
+          <div className="grid grid-cols-3 gap-3 mb-4">
+            {imagePreviews.map((src, index) => (
+              <div key={index} className="relative">
+                <img src={src} className="w-full h-32 object-cover rounded" />
+                <button
+                  type="button"
+                  onClick={() => removeImage(index)}
+                  className="absolute top-1 right-1 bg-red-500 text-white rounded-full px-2"
+                >
+                  X
+                </button>
               </div>
-            )}
+            ))}
           </div>
 
-          {/* Buttons */}
-          <div className="flex flex-col sm:flex-row gap-4">
-            <Button
-              type="submit"
-              variant="primary"
-              size="large"
-              className="flex-1 bg-primary hover:bg-primary-dark"
-            >
-              Post Listing
-            </Button>
-            <Button
-              type="button"
-              variant="outline"
-              size="large"
-              onClick={handleCancel}
-              className="sm:w-auto border-gray-300 text-gray-700 hover:bg-gray-100"
-            >
-              Cancel
-            </Button>
-          </div>
+          <Button type="submit" variant="primary" size="large" fullWidth>
+            Post Listing
+          </Button>
         </form>
       </div>
     </div>

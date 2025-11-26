@@ -6,15 +6,15 @@ import { useState } from 'react';
 import Link from 'next/link';
 import Button from '@/components/Button';
 
-export default function LoginPage() {
+export default function SignupPage() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
 
-  const handleSubmit = async (e) => {
+  const handleSignup = async (e) => {
     e.preventDefault();
 
     try {
-      const res = await fetch(`${API_BASE}/api/auth/login`, {
+      const res = await fetch(`${API_BASE}/api/auth/signup`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json"
@@ -25,15 +25,10 @@ export default function LoginPage() {
       const data = await res.json();
 
       if (res.ok) {
-        // Save token
-        localStorage.setItem("rentup_token", data.token || "");
-        localStorage.setItem("rentup_loggedIn", "true");
-        alert("Login successful!");
-
-        // Redirect
-        window.location.href = "/";
+        alert("Signup successful!");
+        window.location.href = "/login";
       } else {
-        alert("Login failed: " + data.error);
+        alert("Signup failed: " + data.error);
       }
 
     } catch (err) {
@@ -51,12 +46,12 @@ export default function LoginPage() {
               <span className="text-white text-2xl">♻️</span>
             </div>
             <h1 className="text-3xl font-bold text-gray-900 mb-2">
-              Welcome to <span className="text-primary">RentUp</span>
+              Create an Account
             </h1>
-            <p className="text-gray-600">Login to start renting sustainably</p>
+            <p className="text-gray-600">Join RentUp and start renting smart</p>
           </div>
 
-          <form onSubmit={handleSubmit} className="space-y-6">
+          <form onSubmit={handleSignup} className="space-y-6">
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">
                 Email Address
@@ -86,13 +81,13 @@ export default function LoginPage() {
             </div>
 
             <Button type="submit" variant="primary" size="large" fullWidth>
-              Login
+              Sign Up
             </Button>
           </form>
 
           <div className="mt-6 text-center">
-            <Link href="/signup" className="text-sm text-gray-500 hover:text-gray-700">
-              Don’t have an account? Sign up
+            <Link href="/login" className="text-sm text-gray-500 hover:text-gray-700">
+              Already have an account? Login
             </Link>
           </div>
         </div>
