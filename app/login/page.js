@@ -1,40 +1,49 @@
-'use client'
+'use client';
 
 const API_BASE = "https://rentup-backend-clean.onrender.com";
 
-import { useState } from 'react'
-import Link from 'next/link'
-import Button from '@/components/Button'
+import { useState } from 'react';
+import Link from 'next/link';
+import Button from '@/components/Button';
 
 export default function LoginPage() {
-  const [email, setEmail] = useState('')
-  const [password, setPassword] = useState('')
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
 
- const handleSubmit = async (e) => {
-  e.preventDefault();
-  
-  try {
-    const res = await fetch(`${API_BASE}/auth/login`, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json"
-      },
-      body: JSON.stringify({ email, password })
-    });
+  const handleSubmit = async (e) => {
+    e.preventDefault();
 
-    const data = await res.json();
+    try {
+      const res = await fetch('/api/auth/login', {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json"
+        },
+        body: JSON.stringify({ email, password })
+      });
 
-    if (res.ok) {
-      alert("Login successful!");
-    } else {
-      alert("Login failed: " + data.error);
+      const data = await res.json();
+
+      if (res.ok) {
+        // ✅ Store login token (important)
+        if (data.token) {
+          localStorage.setItem("rentup_token", data.token);
+        }
+
+        alert("Login successful!");
+        
+        // ✅ Redirect to Home
+        window.location.href = "/";
+      } else {
+        // Show backend error
+        alert("Login failed: " + (data.error || data.message || "Unknown error"));
+      }
+
+    } catch (err) {
+      alert("Something went wrong!");
+      console.error(err);
     }
-
-  } catch (err) {
-    alert("Something went wrong!");
-    console.error(err);
-  }
-};
+  };
 
   return (
     <div className="min-h-screen flex items-center justify-center px-4 py-12 bg-gradient-to-br from-primary/5 to-secondary/5">
@@ -94,5 +103,5 @@ export default function LoginPage() {
         </div>
       </div>
     </div>
-  )
+  );
 }
