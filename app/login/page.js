@@ -26,8 +26,7 @@ export default function LoginPage() {
 
       if (res.ok) {
         // Save token
-        localStorage.setItem("rentup_token", data.token || "");
-        localStorage.setItem("rentup_loggedIn", "true");
+         localStorage.setItem("rentup_token", data.token);
         alert("Login successful!");
 
         // Redirect

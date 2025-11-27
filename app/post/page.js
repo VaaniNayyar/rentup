@@ -32,6 +32,7 @@ export default function PostPage() {
 
   const listingTypes = ['Daily Rental', 'Monthly Rental', 'One-time Event']
 
+  // ---------------- PROTECT ROUTE ----------------
   useEffect(() => {
     const token = localStorage.getItem("rentup_token")
     if (!token) {
@@ -40,6 +41,7 @@ export default function PostPage() {
     }
   }, [])
 
+  // ---------------- INPUT HANDLERS ----------------
   const handleInputChange = (e) => {
     const { name, value } = e.target
     setFormData((prev) => ({
@@ -50,6 +52,7 @@ export default function PostPage() {
 
   const handleImageChange = (e) => {
     const files = Array.from(e.target.files)
+
     if (files.length + images.length > 5) {
       alert("You can only upload up to 5 images")
       return
@@ -66,16 +69,21 @@ export default function PostPage() {
     setImagePreviews((prev) => prev.filter((_, i) => i !== index))
   }
 
-  // ------------- SUBMIT FORM -------------
+  // ---------------- SUBMIT FORM ----------------
   const handleSubmit = async (e) => {
     e.preventDefault()
 
+    if (!API_BASE) {
+      alert("API base URL missing! Please set NEXT_PUBLIC_API_BASE in .env")
+      return
+    }
+
     try {
-      // 1) UPLOAD IMAGES
+      // 1️⃣ UPLOAD IMAGES
       const uploadForm = new FormData()
       images.forEach((img) => uploadForm.append("images", img))
 
-      const uploadRes = await fetch(`${API_BASE}/post/upload-images`, {
+      const uploadRes = await fetch(`${API_BASE}/upload-images`, {
         method: "POST",
         body: uploadForm,
       })
@@ -83,11 +91,12 @@ export default function PostPage() {
       const uploadData = await uploadRes.json()
 
       if (!uploadRes.ok || !uploadData.urls) {
+        console.error("Upload error:", uploadData)
         alert("Failed to upload images")
         return
       }
 
-      // 2) CREATE LISTING
+      // 2️⃣ CREATE LISTING
       const listingRes = await fetch(`${API_BASE}/post/create`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -114,10 +123,11 @@ export default function PostPage() {
   return (
     <div className="min-h-screen bg-gray-50 py-8 px-4">
       <div className="container mx-auto max-w-4xl">
-        {/* HEADER */}
+
+        {/* Header */}
         <h1 className="text-4xl font-bold mb-4">Post a New Listing</h1>
 
-        {/* FORM */}
+        {/* Form */}
         <form onSubmit={handleSubmit} className="bg-white p-6 rounded-xl shadow">
 
           {/* Title */}
@@ -186,7 +196,7 @@ export default function PostPage() {
             className="w-full p-3 border rounded mb-4"
           ></textarea>
 
-          {/* IMAGES */}
+          {/* Images */}
           <input
             type="file"
             multiple
@@ -195,7 +205,7 @@ export default function PostPage() {
             className="mb-4"
           />
 
-          {/* PREVIEW */}
+          {/* Image Previews */}
           <div className="grid grid-cols-3 gap-3 mb-4">
             {imagePreviews.map((src, index) => (
               <div key={index} className="relative">
